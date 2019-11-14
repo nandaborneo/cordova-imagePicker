@@ -10,7 +10,9 @@ using the Cordova / Phonegap command line interface.
 
     phonegap plugin add cordova-plugin-image-picker
 
-    cordova plugin add cordova-plugin-image-picker
+    cordova plugin add https://github.com/nandaborneo/cordova-imagePicker.git
+    
+    npm install @ionic-native/image-picker@4 => for ionic 2/3
 
 
 ## Using the plugin
