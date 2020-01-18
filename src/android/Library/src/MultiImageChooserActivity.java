@@ -82,6 +82,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.json.*;
 
 public class MultiImageChooserActivity extends Activity implements OnItemClickListener,
   LoaderManager.LoaderCallbacks<Cursor> {
@@ -92,6 +93,7 @@ public class MultiImageChooserActivity extends Activity implements OnItemClickLi
   public static final String WIDTH_KEY = "WIDTH";
   public static final String HEIGHT_KEY = "HEIGHT";
   public static final String QUALITY_KEY = "QUALITY";
+  public static final String LIST_PREVIOUS_KEY = "LIST_PREVIOUS";
 
   private ImageAdapter ia;
 
@@ -112,6 +114,12 @@ public class MultiImageChooserActivity extends Activity implements OnItemClickLi
   private int desiredWidth;
   private int desiredHeight;
   private int quality;
+  private String previousKey;
+  private JSONArray previousKeyJSONArray;
+
+
+  private ArrayList<String> imgPrevious = new ArrayList<String>();
+
 
   private GridView gridView;
 
@@ -139,6 +147,14 @@ public class MultiImageChooserActivity extends Activity implements OnItemClickLi
     desiredHeight = getIntent().getIntExtra(HEIGHT_KEY, 0);
     quality = getIntent().getIntExtra(QUALITY_KEY, 0);
     maxImageCount = maxImages;
+    previousKey = getIntent().getStringExtra(LIST_PREVIOUS_KEY);
+    if(isJSONValid(previousKey)){
+      try{
+        previousKeyJSONArray = new JSONArray(previousKey);
+      }catch (JSONException e){
+        Log.e("JSONException",e.getLocalizedMessage());
+      }
+    }
 
     Display display = getWindowManager().getDefaultDisplay();
     int width = display.getWidth();
@@ -200,7 +216,6 @@ public class MultiImageChooserActivity extends Activity implements OnItemClickLi
     ((GradientDrawable) background).setStroke(Konfigurasi.borderSize,getResources().getColor(fakeR.getId("color", Konfigurasi.numberBorderSelectedColor)));
     text.setTextColor(getResources().getColor(fakeR.getId("color", Konfigurasi.numberTextColor)));
     text.setTextColor(text.getTextColors().withAlpha(((int)Math.round((double)Konfigurasi.numberTextOpacity/100*255))));
-    Log.e("opacity",(int)Math.round((double)Konfigurasi.numberTextOpacity/100*255)+"");
     text.setTextSize(TypedValue.COMPLEX_UNIT_SP,Konfigurasi.fontSize);
     text.setTypeface(ResourcesCompat.getFont(context,fakeR.getId("font",Konfigurasi.fontType)));
 
@@ -294,6 +309,7 @@ public class MultiImageChooserActivity extends Activity implements OnItemClickLi
       case CURSORLOADER_REAL:
         actualimagecursor = cursor;
         String[] columns = actualimagecursor.getColumnNames();
+        //TODO
         actual_image_column_index = actualimagecursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
         orientation_column_index = actualimagecursor.getColumnIndexOrThrow(MediaStore.Images.Media.ORIENTATION);
         break;
@@ -340,6 +356,21 @@ public class MultiImageChooserActivity extends Activity implements OnItemClickLi
     getActionBar().getCustomView().findViewById(fakeR.getId("id", "actionbar_done")).setEnabled(fileNames.size() != 0);
   }
 
+  public boolean isJSONValid(String test) {
+    try {
+        new JSONObject(test);
+    } catch (JSONException ex) {
+        // edited, to include @Arthur's comment
+        // e.g. in case JSONArray is valid as well...previousKeyJSONArray;
+        try {
+            new JSONArray(test);
+        } catch (JSONException ex1) {
+            return false;
+        }
+    }
+    return true;
+}
+
   private void setupHeader() {
     // From Roman Nkk's code
     // https://plus.google.com/113735310430199015092/posts/R49wVvcDoEW
@@ -383,7 +414,7 @@ public class MultiImageChooserActivity extends Activity implements OnItemClickLi
     actionBar.setCustomView(customActionBarView, new ActionBar.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
       ViewGroup.LayoutParams.MATCH_PARENT));
   }
-
+//TODO
   private String getImageName(int position) {
     actualimagecursor.moveToPosition(position);
     String name = null;
@@ -467,6 +498,7 @@ public class MultiImageChooserActivity extends Activity implements OnItemClickLi
         convertView = layoutInflater.inflate(fakeR.getId("layout", "image_card"), null);
       }
       ImageView imageView = convertView.findViewById(fakeR.getId("id", "img"));
+      TextView text = convertView.findViewById(fakeR.getId("id", "number"));
       imageView.setImageBitmap(null);
 
       final int position = pos;
@@ -481,12 +513,34 @@ public class MultiImageChooserActivity extends Activity implements OnItemClickLi
 
       final int id = imagecursor.getInt(image_column_index);
       final int rotate = imagecursor.getInt(image_column_orientation);
+
+      String name = getImageName(pos);
+      try {
+        if(isJSONValid(previousKey)){
+          for(int index = 0; index<previousKeyJSONArray.length();index++){
+            JSONObject obj = new JSONObject(previousKeyJSONArray.get(index).toString());
+            String containsName = name.substring(name.lastIndexOf("/")+1);
+            String fixContainsName = containsName.substring(0,containsName.lastIndexOf("."));
+            if(obj.getString("filename").contains(fixContainsName)){
+              if (!imgPrevious.contains(obj.getString("filename"))){
+                imgPrevious.add(obj.getString("filename"));
+                checkStatus.put(pos, true);
+                count++;
+              }
+            }
+          }
+        }
+      }catch (JSONException e){
+        Log.e("JSONException",e.getLocalizedMessage());
+      }
+
       if (isChecked(pos)) {
         if (android.os.Build.VERSION.SDK_INT >= 16) {
           imageView.setImageAlpha(128);
         } else {
           imageView.setAlpha(128);
         }
+
         imageView.setBackgroundColor(getResources().getColor(fakeR.getId("color", Konfigurasi.selectedColor)));
       } else {
         if (android.os.Build.VERSION.SDK_INT >= 16) {
