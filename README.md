@@ -5,6 +5,36 @@ Cordova Plugin For Multiple Image Selection - implemented for iOS and Android 4.
 
 Demo app https://github.com/nandaborneo/demo-ionic
 
+UPDATED FEATURE
+===================
+## Previous selected image can be selected if sending the previous object in JSON
+### Example
+please see the demo app for full example
+```javascript
+openImagePicker(previewPhotos = null){
+    var options = {
+      maximumImagesCount: -1,
+      listPrevious: JSON.stringify(previewPhotos) ? previewPhotos : "" => This line added previous object and convert to json
+    }
+    console.log(JSON.stringify(previewPhotos));
+    this.imagePicker.getPictures(options)
+    .then((results) => {
+      for (var i = 0;i<results.length;i++){
+        var data:any = {};
+        data.filename = results[i].substring(results[i]
+          .lastIndexOf('/')+1);
+        data.path = results[i];
+        this.previewPhotos.push(data);
+        for( var ii = 0; ii < this.previewPhotos.length; ii++){
+          this.previewPhotos[ii]['info'] = "Gambar "+(ii+1)+" dari "+this.previewPhotos.length
+        }
+      }
+      console.log(this.previewPhotos)
+      
+    }, (err) => { console.log(err) });
+  }
+```
+
 ## Installing the plugin
 
 The plugin conforms to the Cordova plugin specification, it can be installed
